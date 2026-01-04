@@ -10,6 +10,27 @@ API_BASE = os.getenv("API_BASE_URL", "http://127.0.0.1:8000/")
 if not API_BASE.endswith("/"):
     API_BASE += "/"
 
+# Check API connectivity
+@st.cache_data(ttl=60)  # Cache for 60 seconds
+def check_api_connection():
+    """Check if API server is accessible"""
+    try:
+        # Try a simple health check endpoint or any endpoint
+        response = requests.get(f"{API_BASE}employees/governorates", timeout=5)
+        return True, None
+    except requests.exceptions.ConnectionError:
+        return False, "Connection Error: Cannot reach API server. Please ensure the API server is running and API_BASE_URL is configured correctly."
+    except requests.exceptions.Timeout:
+        return False, "Timeout: API server is not responding. Please check if the API server is running."
+    except Exception as e:
+        return False, f"Error: {str(e)}"
+
+# Check API on app load
+api_available, api_error = check_api_connection()
+if not api_available:
+    st.error(f"⚠️ **API Server Not Available**\n\n{api_error}\n\n**To fix this:**\n1. Deploy your API server (api_server_multi.py) to a cloud service (Railway, Render, Fly.io, etc.)\n2. Set the `API_BASE_URL` environment variable in Streamlit Cloud settings to point to your deployed API\n3. The API server needs access to the `central_db.db` file\n\n**Current API URL:** `{API_BASE}`\n\n**For local development:** Make sure the API server is running on `http://127.0.0.1:8000`")
+    st.stop()
+
 # Custom CSS for Fawry Plus branding and styling
 st.markdown("""
 <style>
